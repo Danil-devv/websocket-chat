@@ -22,7 +22,7 @@ jobs:
           go-version: 'stable'
 
       - name: Build-Server
-        working-directory: ./hw/server
+        working-directory: ./server
         run: |
           go mod tidy
           go build -v ./...
@@ -31,17 +31,17 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
-          working-directory: ./hw/server
+          working-directory: ./server
 
       - name: Test-Server
-        working-directory: ./hw/server
+        working-directory: ./server
         run: |
           go mod tidy
           go test -v -race -coverpkg=./... ./...
 
 
       - name: Build-Client
-        working-directory: ./hw/client
+        working-directory: ./client
         run: |
           go mod tidy
           go build -v ./...
@@ -50,10 +50,10 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
-          working-directory: ./hw/client
+          working-directory: ./client
 
       - name: Test-Client
-        working-directory: ./hw/client
+        working-directory: ./client
         run: |
           go mod tidy
           go test -v -race -coverpkg=./... ./...
