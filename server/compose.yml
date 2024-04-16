@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  webserver:
+    container_name: websocket-chat-server
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    expose:
+      - "${SERVER_PORT}"
+    networks:
+      - websocket-chat-network
+    depends_on:
+      - db
+
+  db:
+    container_name: websocket-chat-db
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    expose:
+      - "${POSTGRES_PORT}"
+    volumes:
+      - ./migrations:/docker-entrypoint-initdb.d
+      - websocket-chat-data:/var/lib/postgresql/data
+    networks:
+      - websocket-chat-network
+
+volumes:
+  websocket-chat-data:
+
+networks:
+  websocket-chat-network:
+    driver: bridge

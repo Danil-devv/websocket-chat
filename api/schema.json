@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "title": "Message",
+  "description": "Message form user",
+  "properties": {
+    "username": {
+      "type": "string",
+      "description": "Имя пользователя"
+    },
+    "message": {
+      "type": "string",
+      "description": "Сообщение от пользователя"
+    }
+  },
+  "required": ["username", "message"],
+  "additionalProperties": false
+}
