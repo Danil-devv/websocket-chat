@@ -6,9 +6,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"server/internal/adapters/websocket/syncmap"
 	"server/internal/config"
 	"server/internal/domain"
-	"server/internal/websocket/syncmap"
 )
 
 type App interface {

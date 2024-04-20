@@ -13,10 +13,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"server/internal/adapters/websocket"
 	"server/internal/app"
 	"server/internal/config"
 	"server/internal/repository/postgres"
-	"server/internal/websocket"
 	"syscall"
 )
 

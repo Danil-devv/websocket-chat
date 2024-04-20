@@ -4,7 +4,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"server/internal/websocket/syncmap"
+	"server/internal/adapters/websocket/syncmap"
 )
 
 func newRouter(a App, u *websocket.Upgrader, connections *syncmap.ConnectionsMap, l *logrus.Logger) *http.ServeMux {

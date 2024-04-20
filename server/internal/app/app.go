@@ -7,17 +7,17 @@ import (
 )
 
 //go:generate go run github.com/vektra/mockery/v2@v2.42.0 --name=Repository
-type Repository interface {
+type LoadSaver interface {
 	SaveMessage(ctx context.Context, message domain.Message) error
 	LoadMessages(ctx context.Context, count int) ([]domain.Message, error)
 }
 
 type App struct {
 	messagesToLoad int
-	repo           Repository
+	repo           LoadSaver
 }
 
-func New(r Repository, conf *config.App) *App {
+func New(r LoadSaver, conf *config.App) *App {
 	return &App{
 		repo:           r,
 		messagesToLoad: conf.MessagesToLoad,

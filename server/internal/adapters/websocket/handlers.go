@@ -8,8 +8,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"server/internal/adapters/websocket/syncmap"
 	"server/internal/domain"
-	"server/internal/websocket/syncmap"
 )
 
 func createConnection(a App, u *websocket.Upgrader, c *syncmap.ConnectionsMap, l *logrus.Logger) http.HandlerFunc {
