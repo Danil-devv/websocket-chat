@@ -21,7 +21,7 @@ func NewRepository(conf *Config) *Repository {
 
 const saveMessageQuery = `INSERT INTO messages (username, data) VALUES ($1, $2);`
 
-func (r *Repository) SaveMessage(ctx context.Context, message domain.Message) error {
+func (r *Repository) SaveMessage(ctx context.Context, message *domain.Message) error {
 	_, err := r.pool.Exec(ctx, saveMessageQuery, message.Username, message.Text)
 	if err != nil {
 		return err

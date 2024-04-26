@@ -3,24 +3,35 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/errgroup"
 	"log"
 	"os"
 	"os/signal"
 	"storage/internal/adapters/kafka"
+	"storage/internal/adapters/postgres"
 	"storage/internal/app"
+	"storage/internal/repository"
 	"strings"
 	"syscall"
 )
 
 func main() {
-	a := app.NewApp(_)
-
 	kafkaConfig := &kafka.Config{
 		Brokers: strings.Split("kafka1:29092,kafka2:29093,kafka3:29094", ","),
 		Topics:  []string{"ts.2s.2"},
 		GroupID: "1",
 	}
+	postgresConfig := &postgres.Config{
+		// TODO: настроить
+	}
+	redisConfig := &redis.Options{
+		Addr: "localhost:6379",
+		DB:   0,
+	}
+
+	repo := repository.New(postgresConfig, redisConfig)
+	a := app.NewApp(repo)
 	consumer, err := kafka.NewConsumer(a, kafkaConfig)
 
 	eg, ctx := errgroup.WithContext(context.Background())
