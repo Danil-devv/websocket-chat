@@ -14,9 +14,9 @@ type Consumer struct {
 	consumerGroup sarama.ConsumerGroup
 }
 
-func NewConsumer(ctx context.Context, app app.App, cfg *Config) (*Consumer, error) {
+func NewConsumer(app *app.App, cfg *Config) (*Consumer, error) {
 	consumer := &Consumer{
-		ctx: ctx,
+		ctx: context.Background(),
 	}
 	handler := &Handler{app: app}
 

@@ -38,7 +38,6 @@ func main() {
 	}
 
 	pgxConfig, err := pgxpool.ParseConfig("postgres://postgres:postgres@db:5432/websocket-chat")
-
 	if err != nil {
 		log.WithError(err).Fatal("cannot parse config file")
 	}
@@ -54,20 +53,20 @@ func main() {
 	}
 	defer pool.Close()
 
-	pgConf := &postgres.Config{
+	pgConfig := &postgres.Config{
 		Pool:   pool,
 		Logger: log,
 	}
-	redisConf := &redis.Options{
+	redisConfig := &redis.Options{
 		Addr: "redis:6379",
 		DB:   0,
 	}
-	kafkaConf := &kafka.ProducerConfig{
+	kafkaConfig := &kafka.ProducerConfig{
 		Brokers: strings.Split("kafka1:29092,kafka2:29093,kafka3:29094", ","),
 		Topic:   "ts.2s.2",
 		Logger:  log,
 	}
-	repo, err := repository.NewRepository(pgConf, redisConf, kafkaConf)
+	repo, err := repository.NewRepository(pgConfig, redisConfig, kafkaConfig)
 	if err != nil {
 		log.WithError(err).Fatal("cannot create repository")
 	}

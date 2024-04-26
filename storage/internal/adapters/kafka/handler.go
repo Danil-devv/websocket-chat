@@ -9,7 +9,7 @@ import (
 )
 
 type Handler struct {
-	app app.App
+	app *app.App
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim
