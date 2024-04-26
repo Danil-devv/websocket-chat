@@ -8,17 +8,17 @@ import (
 )
 
 type Repository struct {
-	r *redis.Client
+	c *redis.Client
 }
 
 func NewRepository(opt *redis.Options) *Repository {
 	return &Repository{
-		r: redis.NewClient(opt),
+		c: redis.NewClient(opt),
 	}
 }
 
-func (c *Repository) LoadMessages(ctx context.Context, count int) ([]domain.Message, error) {
-	res := c.r.LRange(ctx, "chat:messages", 0, int64(count))
+func (r *Repository) LoadMessages(ctx context.Context, count int) ([]domain.Message, error) {
+	res := r.c.LRange(ctx, "chat:messages", 0, int64(count))
 	data, err := res.Result()
 	if err != nil {
 		return nil, err
