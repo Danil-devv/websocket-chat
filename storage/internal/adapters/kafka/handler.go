@@ -3,13 +3,14 @@ package kafka
 import (
 	"encoding/json"
 	"github.com/IBM/sarama"
-	"log"
+	"github.com/sirupsen/logrus"
 	"storage/internal/app"
 	"storage/internal/domain"
 )
 
 type Handler struct {
 	app *app.App
+	log logrus.FieldLogger
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim
@@ -28,24 +29,31 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 		select {
 		case message, ok := <-claim.Messages():
 			if !ok {
-				log.Println("message channel was closed")
+				h.log.Infoln("message channel was closed")
 				return nil
 			}
 
+			h.log.Infoln("message claimed: ", message.Value)
 			msg := &domain.Message{}
 			err := json.Unmarshal(message.Value, msg)
 			if err != nil {
-				log.Println("error unmarshalling message: ", err.Error())
+				h.log.
+					WithField("message.value", message.Value).
+					Errorf("cannot unmarshal message: %v", err)
 				return err
 			}
 
+			h.log.Infoln("saving message")
 			err = h.app.SaveMessage(session.Context(), msg)
 			if err != nil {
-				log.Printf("error {%s} while handling message message: %+v", err, message)
+				h.log.WithField("message", msg).Errorf("cannot save message: %v", err)
 				return nil
 			}
+
+			h.log.Infoln("message successfully saved, marking message")
 			session.MarkMessage(message, "")
 		case <-session.Context().Done():
+			h.log.Infoln("session is done")
 			session.Commit()
 			return nil
 		}

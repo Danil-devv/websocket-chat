@@ -1,11 +1,15 @@
 package kafka
 
-import "github.com/IBM/sarama"
+import (
+	"github.com/IBM/sarama"
+	"github.com/sirupsen/logrus"
+)
 
 type Config struct {
 	Brokers []string
 	GroupID string
 	Topics  []string
+	Logger  logrus.FieldLogger
 }
 
 func InitConsumerConfig() *sarama.Config {
