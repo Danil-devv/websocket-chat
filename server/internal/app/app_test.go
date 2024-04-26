@@ -6,7 +6,7 @@ import (
 	"server/internal/app/mocks"
 	"server/internal/config"
 	"server/internal/domain"
-	"server/internal/repository"
+	"server/internal/repository/errs"
 	"testing"
 )
 
@@ -103,23 +103,23 @@ func TestApp_SaveMessage_WithRepoError(t *testing.T) {
 
 	tests := [][]testcase{
 		{
-			testcase{username: "danil", message: "bred", returnedError: repository.ErrInternal},
-			testcase{username: "gleb", message: "hello", returnedError: repository.ErrInternal},
-			testcase{username: "maks", message: "bye-bye", returnedError: repository.ErrInternal},
-			testcase{username: "maks", message: "some message", returnedError: repository.ErrInternal},
+			testcase{username: "danil", message: "bred", returnedError: errs.ErrInternal},
+			testcase{username: "gleb", message: "hello", returnedError: errs.ErrInternal},
+			testcase{username: "maks", message: "bye-bye", returnedError: errs.ErrInternal},
+			testcase{username: "maks", message: "some message", returnedError: errs.ErrInternal},
 		},
 		{
-			testcase{username: "danil", message: "bred", returnedError: repository.ErrInternal},
+			testcase{username: "danil", message: "bred", returnedError: errs.ErrInternal},
 		},
 		{
-			testcase{username: "danil", message: "bred", returnedError: repository.ErrInternal},
-			testcase{username: "gleb", message: "hello", returnedError: repository.ErrInternal},
-			testcase{username: "maks", message: "bye-bye", returnedError: repository.ErrInternal},
-			testcase{username: "maks", message: "some message", returnedError: repository.ErrInternal},
-			testcase{username: "danil", message: "privet", returnedError: repository.ErrInternal},
-			testcase{username: "gleb", message: "bim bim bom bom", returnedError: repository.ErrInternal},
-			testcase{username: "gleb", message: "gew w2vt242vt3tv2v3", returnedError: repository.ErrInternal},
-			testcase{username: "danil", message: "vv2 32f32", returnedError: repository.ErrInternal},
+			testcase{username: "danil", message: "bred", returnedError: errs.ErrInternal},
+			testcase{username: "gleb", message: "hello", returnedError: errs.ErrInternal},
+			testcase{username: "maks", message: "bye-bye", returnedError: errs.ErrInternal},
+			testcase{username: "maks", message: "some message", returnedError: errs.ErrInternal},
+			testcase{username: "danil", message: "privet", returnedError: errs.ErrInternal},
+			testcase{username: "gleb", message: "bim bim bom bom", returnedError: errs.ErrInternal},
+			testcase{username: "gleb", message: "gew w2vt242vt3tv2v3", returnedError: errs.ErrInternal},
+			testcase{username: "danil", message: "vv2 32f32", returnedError: errs.ErrInternal},
 		},
 	}
 
@@ -174,7 +174,7 @@ func TestApp_LoadLastMessages(t *testing.T) {
 		{
 			count:    10,
 			messages: nil,
-			err:      repository.ErrNotFound,
+			err:      errs.ErrNotFound,
 		},
 	}
 

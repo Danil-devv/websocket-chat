@@ -3,7 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
-	"server/internal/repository"
+	errs "server/internal/repository/errs"
 )
 
 var (
@@ -31,7 +31,7 @@ func (e *Error) WithMessage(msg string) *Error {
 
 func newAppError(e error) *Error {
 	switch {
-	case errors.Is(e, repository.ErrNotFound):
+	case errors.Is(e, errs.ErrNotFound):
 		return &Error{err: ErrNotFound, msg: e.Error()}
 	default:
 		return &Error{err: ErrInternal, msg: e.Error()}

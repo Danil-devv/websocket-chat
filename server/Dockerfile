@@ -2,19 +2,19 @@ FROM golang:1.22.0-alpine3.19 AS builder
 
 WORKDIR /app
 
-COPY go.mod ./
+COPY ./server/go.mod ./
 
-COPY go.sum ./
+COPY ./server/go.sum ./
 
-COPY .env ./
+COPY ./server/.env ./
 
 RUN mkdir "cmd"
 
 RUN mkdir "internal"
 
-COPY cmd ./cmd
+COPY ./server/cmd ./cmd
 
-COPY internal ./internal
+COPY ./server/internal ./internal
 
 RUN go mod download
 

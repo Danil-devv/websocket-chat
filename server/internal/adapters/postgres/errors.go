@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"server/internal/repository"
+	"server/internal/repository/errs"
 )
 
 type Error struct {
@@ -28,8 +28,8 @@ func (e *Error) WithMessage(msg string) *Error {
 func newPostgresError(e error) *Error {
 	switch {
 	case errors.Is(e, pgx.ErrNoRows):
-		return &Error{err: repository.ErrNotFound, msg: e.Error()}
+		return &Error{err: errs.ErrNotFound, msg: e.Error()}
 	default:
-		return &Error{err: repository.ErrInternal, msg: e.Error()}
+		return &Error{err: errs.ErrInternal, msg: e.Error()}
 	}
 }

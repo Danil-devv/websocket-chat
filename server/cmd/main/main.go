@@ -8,15 +8,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"net/http"
 	"os"
 	"os/signal"
+	"server/internal/adapters/kafka"
+	"server/internal/adapters/postgres"
 	"server/internal/adapters/websocket"
 	"server/internal/app"
 	"server/internal/config"
-	"server/internal/repository/postgres"
+	"server/internal/repository"
+	"strings"
 	"syscall"
 )
 
@@ -50,7 +54,23 @@ func main() {
 	}
 	defer pool.Close()
 
-	repo := postgres.NewRepository(pool, log)
+	pgConf := &postgres.Config{
+		Pool:   pool,
+		Logger: log,
+	}
+	redisConf := &redis.Options{
+		Addr: "redis:6379",
+		DB:   0,
+	}
+	kafkaConf := &kafka.ProducerConfig{
+		Brokers: strings.Split("kafka1:29092,kafka2:29093,kafka3:29094", ","),
+		Topic:   "ts.2s.2",
+		Logger:  log,
+	}
+	repo, err := repository.NewRepository(pgConf, redisConf, kafkaConf)
+	if err != nil {
+		log.WithError(err).Fatal("cannot create repository")
+	}
 
 	appConfig, err := config.LoadApp()
 	if err != nil {

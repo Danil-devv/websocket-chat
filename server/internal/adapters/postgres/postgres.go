@@ -12,10 +12,10 @@ type Repository struct {
 	logger logrus.FieldLogger
 }
 
-func NewRepository(pgxPool *pgxpool.Pool, logger logrus.FieldLogger) *Repository {
+func NewRepository(conf *Config) *Repository {
 	return &Repository{
-		pool:   pgxPool,
-		logger: logger,
+		pool:   conf.Pool,
+		logger: conf.Logger,
 	}
 }
 
