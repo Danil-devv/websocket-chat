@@ -6,7 +6,7 @@ COPY ./storage/go.mod ./
 
 COPY ./storage/go.sum ./
 
-COPY ./storage/.env ./
+COPY ./storage/example.env ./
 
 RUN mkdir "cmd"
 
@@ -25,6 +25,6 @@ FROM alpine:3.19.0 AS runner
 WORKDIR /root/
 
 COPY --from=builder /app/storage_service .
-COPY --from=builder /app/.env .
+COPY --from=builder /app/example.env .
 
 CMD ["./storage_service"]
