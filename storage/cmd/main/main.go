@@ -9,7 +9,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"log"
 	"os"
 	"os/signal"
 	"storage/internal/adapters/kafka"
@@ -23,7 +22,6 @@ import (
 )
 
 func main() {
-	// logger settings
 	logger := &logrus.Logger{
 		Out: os.Stderr,
 		Formatter: &logrus.TextFormatter{
@@ -34,18 +32,17 @@ func main() {
 		Level: logrus.DebugLevel,
 	}
 
-	postgresConfig, kafkaConfig, redisConfig, err := getConfigs()
+	postgresConfig, kafkaConfig, redisConfig, err := getConfigs(logger)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
-
-	kafkaConfig.Logger = logger.WithField("FROM", "[KAFKA-CONSUMER]")
-	postgresConfig.Logger = logger.WithField("FROM", "[POSTGRES]")
-	redisConfig.Logger = logger.WithField("FROM", "[REDIS]")
 
 	repo := repository.New(postgresConfig, redisConfig, logger.WithField("FROM", "[REPOSITORY]"))
 	a := app.NewApp(repo)
 	consumer, err := kafka.NewConsumer(a, kafkaConfig)
+	if err != nil {
+		logger.Fatalf("cannot create kafka consumer: %v", err)
+	}
 
 	// graceful shutdown
 	eg, ctx := errgroup.WithContext(context.Background())
@@ -54,7 +51,7 @@ func main() {
 	eg.Go(func() error {
 		select {
 		case s := <-sigQuit:
-			log.Printf("captured signal: %v", s)
+			logger.Printf("captured signal: %v", s)
 			return fmt.Errorf("captured signal: %v", s)
 		case <-ctx.Done():
 			return nil
@@ -66,18 +63,18 @@ func main() {
 	})
 
 	if err = eg.Wait(); err != nil {
-		log.Printf("gracefully shutting down the consumer: %v", err)
+		logger.Printf("gracefully shutting down the consumer: %v", err)
 	}
 
 	if err = consumer.Close(); err != nil {
-		log.Printf("failed to close consumer: %v", err)
+		logger.Printf("failed to close consumer: %v", err)
 	}
 }
 
-func getConfigs() (*postgres.Config, *kafka.Config, *rds.Config, error) {
+func getConfigs(logger *logrus.Logger) (*postgres.Config, *kafka.Config, *rds.Config, error) {
 	cfg, err := config.Get()
 	if err != nil {
-		log.Println(err)
+		logger.Errorf("cannot get config: %v", err)
 		return nil, nil, nil, err
 	}
 	pgxConfig, err := pgxpool.ParseConfig(
@@ -90,34 +87,37 @@ func getConfigs() (*postgres.Config, *kafka.Config, *rds.Config, error) {
 		),
 	)
 	if err != nil {
-		log.Println("cannot parse config file")
+		logger.Errorf("cannot parse postgres config: %v", err)
 		return nil, nil, nil, err
 	}
 	pgxConfig.ConnConfig.Tracer = &tracelog.TraceLog{
-		Logger:   pgxLogrus.NewLogger(log.Logger{}),
+		Logger:   pgxLogrus.NewLogger(logger.WithField("FROM", "[PGX-POOL]")),
 		LogLevel: tracelog.LogLevelDebug,
 	}
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), pgxConfig)
 	if err != nil {
-		log.Println("cannot create pgx pool with config")
+		logger.Errorf("cannot create pool: %v", err)
 		return nil, nil, nil, err
 	}
 	postgresConfig := &postgres.Config{
-		Pool: pool,
+		Pool:   pool,
+		Logger: logger.WithField("FROM", "[POSTGRES]"),
 	}
 
 	kafkaConfig := &kafka.Config{
 		Brokers: strings.Split(cfg.Kafka.Brokers, ","),
 		Topics:  strings.Split(cfg.Kafka.Topics, ","),
 		GroupID: cfg.Kafka.GroupID,
+		Logger:  logger.WithField("FROM", "[KAFKA-CONSUMER]"),
 	}
 	redisConfig := &rds.Config{
 		Opt: &redis.Options{
 			Addr: fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port),
 			DB:   cfg.Redis.DB,
 		},
-		Key: cfg.Redis.Key,
+		Key:    cfg.Redis.Key,
+		Logger: logger.WithField("FROM", "[REDIS]"),
 	}
 
 	return postgresConfig, kafkaConfig, redisConfig, nil

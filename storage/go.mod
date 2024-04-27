@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/IBM/sarama v1.43.1
+	github.com/jackc/pgx-logrus v0.0.0-20220919124836-b099d8ce75da
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/sirupsen/logrus v1.9.3
