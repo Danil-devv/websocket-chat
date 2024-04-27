@@ -18,15 +18,15 @@ func NewRepository(opt *redis.Options) *Repository {
 }
 
 func (r *Repository) LoadMessages(ctx context.Context, count int) ([]domain.Message, error) {
-	res := r.c.LRange(ctx, "chat:messages", 0, int64(count))
+	res := r.c.LRange(ctx, "chat:messages", 0, max(0, int64(count-1)))
 	data, err := res.Result()
 	if err != nil {
 		return nil, err
 	}
 
-	messages := make([]domain.Message, count)
+	messages := make([]domain.Message, len(data))
 	for i, v := range data {
-		err = json.Unmarshal([]byte(v), &messages[i])
+		err = json.Unmarshal([]byte(v), &messages[len(messages)-i-1])
 		if err != nil {
 			return nil, err
 		}
