@@ -6,6 +6,7 @@ import (
 	pgxLogrus "github.com/jackc/pgx-logrus"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -30,6 +31,10 @@ func main() {
 		},
 		Hooks: logrus.LevelHooks{},
 		Level: logrus.DebugLevel,
+	}
+
+	if err := godotenv.Load(); err != nil {
+		logger.Errorf("cannot load .env file: %v", err)
 	}
 
 	postgresConfig, kafkaConfig, redisConfig, err := getConfigs(logger)
