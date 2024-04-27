@@ -18,6 +18,18 @@ services:
       - kafka2
       - kafka3
       - zookeeper
+      - storage
+
+  storage:
+    build:
+      dockerfile: ./storage/Dockerfile
+    depends_on:
+      - db
+      - redis
+      - kafka1
+      - kafka2
+      - kafka3
+      - zookeeper
 
   db:
     container_name: websocket-chat-db
