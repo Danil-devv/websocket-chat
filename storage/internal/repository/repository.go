@@ -23,15 +23,27 @@ func New(pgConf *postgres.Config, redisConf *redis.Config, log logrus.FieldLogge
 }
 
 func (r *Repository) SaveMessage(ctx context.Context, message *domain.Message) error {
+	r.log.
+		WithField("message", message).
+		Info("saving message to postgres")
 	err := r.postgres.SaveMessage(ctx, message)
 	if err != nil {
-		r.log.Errorf("cannot save message to postgres: %v", err)
+		r.log.
+			WithError(err).
+			WithField("message", message).
+			Error("cannot save message to postgres")
 		return err
 	}
 	go func() {
+		r.log.
+			WithField("message", message).
+			Info("saving message to redis")
 		err = r.redis.SaveMessage(ctx, message)
 		if err != nil {
-			r.log.Errorf("cannot save message to redis: %v", err)
+			r.log.
+				WithError(err).
+				WithField("message", message).
+				Error("cannot save message to redis")
 		}
 	}()
 	return nil

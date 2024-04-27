@@ -26,15 +26,18 @@ func main() {
 	logger := &logrus.Logger{
 		Out: os.Stderr,
 		Formatter: &logrus.TextFormatter{
-			ForceColors:  true,
-			PadLevelText: true,
+			ForceColors:   true,
+			PadLevelText:  true,
+			FullTimestamp: true,
 		},
 		Hooks: logrus.LevelHooks{},
 		Level: logrus.DebugLevel,
 	}
 
 	if err := godotenv.Load(); err != nil {
-		logger.Errorf("cannot load .env file: %v", err)
+		logger.
+			WithError(err).
+			Error("cannot load .env file:")
 	}
 
 	postgresConfig, kafkaConfig, redisConfig, err := getConfigs(logger)
@@ -46,7 +49,9 @@ func main() {
 	a := app.NewApp(repo)
 	consumer, err := kafka.NewConsumer(a, kafkaConfig)
 	if err != nil {
-		logger.Fatalf("cannot create kafka consumer: %v", err)
+		logger.
+			WithError(err).
+			Fatal("cannot create kafka consumer")
 	}
 
 	// graceful shutdown
@@ -56,7 +61,9 @@ func main() {
 	eg.Go(func() error {
 		select {
 		case s := <-sigQuit:
-			logger.Printf("captured signal: %v", s)
+			logger.
+				WithField("signal", s).
+				Info("captured signal")
 			return fmt.Errorf("captured signal: %v", s)
 		case <-ctx.Done():
 			return nil
@@ -68,18 +75,24 @@ func main() {
 	})
 
 	if err = eg.Wait(); err != nil {
-		logger.Printf("gracefully shutting down the consumer: %v", err)
+		logger.
+			WithError(err).
+			Info("gracefully shutting down the consumer")
 	}
 
 	if err = consumer.Close(); err != nil {
-		logger.Printf("failed to close consumer: %v", err)
+		logger.
+			WithError(err).
+			Error("failed to close consumer")
 	}
 }
 
 func getConfigs(logger *logrus.Logger) (*postgres.Config, *kafka.Config, *rds.Config, error) {
 	cfg, err := config.Get()
 	if err != nil {
-		logger.Errorf("cannot get config: %v", err)
+		logger.
+			WithError(err).
+			Error("cannot get config")
 		return nil, nil, nil, err
 	}
 	pgxConfig, err := pgxpool.ParseConfig(
@@ -92,7 +105,9 @@ func getConfigs(logger *logrus.Logger) (*postgres.Config, *kafka.Config, *rds.Co
 		),
 	)
 	if err != nil {
-		logger.Errorf("cannot parse postgres config: %v", err)
+		logger.
+			WithError(err).
+			Error("cannot parse postgres config")
 		return nil, nil, nil, err
 	}
 	pgxConfig.ConnConfig.Tracer = &tracelog.TraceLog{
@@ -102,7 +117,9 @@ func getConfigs(logger *logrus.Logger) (*postgres.Config, *kafka.Config, *rds.Co
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), pgxConfig)
 	if err != nil {
-		logger.Errorf("cannot create pool: %v", err)
+		logger.
+			WithError(err).
+			Error("cannot create pgx pool")
 		return nil, nil, nil, err
 	}
 	postgresConfig := &postgres.Config{

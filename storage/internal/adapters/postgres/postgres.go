@@ -22,12 +22,18 @@ func NewRepository(conf *Config) *Repository {
 const saveMessageQuery = `INSERT INTO messages (username, data) VALUES ($1, $2);`
 
 func (r *Repository) SaveMessage(ctx context.Context, message *domain.Message) error {
-	r.log.Infof("got message: %+v", message)
+	r.log.
+		WithField("message", message).
+		Info("got message")
 	_, err := r.pool.Exec(ctx, saveMessageQuery, message.Username, message.Text)
 	if err != nil {
-		r.log.Errorf("cannot save message: %v", err)
+		r.log.
+			WithError(err).
+			Error("cannot save message")
 		return err
 	}
-	r.log.Infof("successfully save message: %+v", message)
+	r.log.
+		WithField("message", message).
+		Info("successfully save message")
 	return nil
 }

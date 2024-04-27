@@ -33,24 +33,32 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 				return nil
 			}
 
-			h.log.Infoln("message claimed: ", message.Value)
+			h.log.
+				WithField("message", string(message.Value)).
+				Info("message claimed")
 			msg := &domain.Message{}
 			err := json.Unmarshal(message.Value, msg)
 			if err != nil {
 				h.log.
+					WithError(err).
 					WithField("message.value", message.Value).
-					Errorf("cannot unmarshal message: %v", err)
+					Errorf("cannot unmarshal message")
 				return err
 			}
 
 			h.log.Infoln("saving message")
 			err = h.app.SaveMessage(session.Context(), msg)
 			if err != nil {
-				h.log.WithField("message", msg).Errorf("cannot save message: %v", err)
+				h.log.
+					WithError(err).
+					WithField("message", msg).
+					Error("cannot save message")
 				return nil
 			}
 
-			h.log.Infoln("message successfully saved, marking message")
+			h.log.
+				WithField("message", message).
+				Info("message successfully saved, marking message")
 			session.MarkMessage(message, "")
 		case <-session.Context().Done():
 			h.log.Infoln("session is done")

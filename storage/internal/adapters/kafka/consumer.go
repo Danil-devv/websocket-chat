@@ -26,7 +26,9 @@ func NewConsumer(app *app.App, cfg *Config) (*Consumer, error) {
 
 	consumerGroup, err := sarama.NewConsumerGroup(cfg.Brokers, cfg.GroupID, InitConsumerConfig())
 	if err != nil {
-		cfg.Logger.Errorf("cannot create consumer group: %v", err)
+		cfg.Logger.
+			WithError(err).
+			Errorf("cannot create consumer group")
 		return nil, err
 	}
 
@@ -40,11 +42,15 @@ func NewConsumer(app *app.App, cfg *Config) (*Consumer, error) {
 func (c *Consumer) Run() error {
 	for {
 		if err := c.consumerGroup.Consume(c.ctx, c.topics, c.handler); err != nil {
-			c.log.Errorf("cannot consume message: %v", err)
+			c.log.
+				WithError(err).
+				Error("cannot consume message")
 			return err
 		}
 		if c.ctx.Err() != nil {
-			c.log.Errorf("got context error: %v", c.ctx.Err())
+			c.log.
+				WithError(c.ctx.Err()).
+				Error("got context error")
 			return c.ctx.Err()
 		}
 	}
