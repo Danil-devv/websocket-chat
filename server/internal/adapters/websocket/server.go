@@ -20,7 +20,7 @@ type Server struct {
 	srv http.Server
 }
 
-func NewServer(a App, conf *config.Server, log *logrus.Logger) *Server {
+func NewServer(a App, conf *config.Server, log logrus.FieldLogger) *Server {
 	upgrader := &websocket.Upgrader{
 		ReadBufferSize:  conf.ReadBufferSize,
 		WriteBufferSize: conf.WriteBufferSize,

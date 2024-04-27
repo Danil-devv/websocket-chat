@@ -12,68 +12,39 @@ import (
 	"server/internal/domain"
 )
 
-func createConnection(a App, u *websocket.Upgrader, c *syncmap.ConnectionsMap, l *logrus.Logger) http.HandlerFunc {
+func createConnection(a App, u *websocket.Upgrader, c *syncmap.ConnectionsMap, log logrus.FieldLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		conn, err := u.Upgrade(w, r, nil)
-
-		uid := uuid.New()
-		l.WithField("uuid", uid.ID()).Debug("trying to open new websocket connection")
-		defer func() {
-			err := conn.Close()
-			if err != nil {
-				l.WithField("uuid", uid.ID()).WithError(err).Error("cannot close connection")
-			}
-		}()
+		// --- OPEN NEW CONNECTION
+		uid, conn, cancel, err := openNewConnection(log, u, w, r, c)
+		defer cancel()
 		if err != nil {
-			l.WithField("uuid", uid.ID()).WithError(err).Error("cannot upgrade connection to websocket")
 			return
 		}
+		// --- OPEN NEW CONNECTION
 
-		c.Store(conn)
-		l.WithField("uuid", uid.ID()).Debug("store the connection")
-		defer func() {
-			c.Delete(conn)
-			l.WithField("uuid", uid.ID()).Debug("delete the connection")
-		}()
-
-		l.WithField("uuid", uid.ID()).Debug("start loading last messages")
-		messages, err := a.LoadLastMessages()
+		// --- LOADING LAST MESSAGES
+		log.WithField("uuid", uid.ID()).
+			Info("start loading last messages")
+		err = loadLastMessages(a, log, uid, conn)
 		if err != nil {
-			l.WithField("uuid", uid.ID()).WithError(err).Error("internal error: cannot load last messages")
-			err := conn.WriteMessage(
-				websocket.CloseInternalServerErr,
-				[]byte(fmt.Sprintf("cannot load last messages: %s", err.Error())),
-			)
-			if err != nil {
-				l.WithField("uuid", uid.ID()).WithError(err).Error("cannot send message to client")
-			}
 			return
 		}
-		l.WithField("uuid", uid.ID()).Debug("loading successfully finished")
+		log.WithField("uuid", uid.ID()).
+			Info("loading successfully finished")
+		// --- LOADING LAST MESSAGES
 
-		l.WithField("uuid", uid.ID()).Debug("start sending last messages")
-		for _, m := range messages {
-			data, err := json.Marshal(m)
-			if err != nil {
-				l.WithField("uuid", uid.ID()).WithError(err).Info("cannot marshal data to json")
-				continue
-			}
-			err = conn.WriteMessage(websocket.TextMessage, data)
-			if err != nil {
-				l.WithField("uuid", uid.ID()).WithError(err).Error("cannot send message to client")
-				return
-			}
-		}
-		l.WithField("uuid", uid.ID()).Debug("last messages have been sent")
-
-		l.WithField("uuid", uid.ID()).Debug("start listening messages")
+		// --- LISTENING MESSAGES
+		log.WithField("uuid", uid.ID()).
+			Info("start listening messages")
 		for {
 			messageType, data, err := conn.ReadMessage()
-			l.WithField("uuid", uid.ID()).WithField("data", string(data)).Debug("got message")
+			log.WithField("uuid", uid.ID()).
+				WithField("data", string(data)).
+				Info("got message")
 
 			if err != nil || messageType == websocket.CloseMessage {
-				l.WithField("uuid", uid.ID()).
-					WithError(err).
+				log.WithError(err).
+					WithField("uuid", uid.ID()).
 					WithField("message type", messageType).
 					Info("closing the connection")
 				return
@@ -81,8 +52,9 @@ func createConnection(a App, u *websocket.Upgrader, c *syncmap.ConnectionsMap, l
 
 			err = validateMessage(data)
 			if err != nil {
-				l.WithField("uuid", uid.ID()).
-					Debug("message doesnt pass validation, receiving an error message")
+				log.WithError(err).
+					WithField("uuid", uid.ID()).
+					Info("message doesnt pass validation, receiving an error message")
 
 				msg := domain.Message{
 					Username: "WRONG MESSAGE ERROR",
@@ -91,24 +63,110 @@ func createConnection(a App, u *websocket.Upgrader, c *syncmap.ConnectionsMap, l
 
 				data, err := json.Marshal(msg)
 				if err != nil {
-					l.WithField("uuid", uid.ID()).WithError(err).Error("cannot marshal data to json")
+					log.WithError(err).
+						WithField("uuid", uid.ID()).
+						WithField("msg", msg).
+						Error("cannot marshal data to json")
 					continue
 				}
 
 				err = conn.WriteMessage(websocket.TextMessage, data)
 				if err != nil {
-					l.WithField("uuid", uid.ID()).WithError(err).Error("cannot send message to client")
+					log.WithError(err).
+						WithField("uuid", uid.ID()).
+						Error("cannot send message to client")
 					return
 				}
 				continue
 			}
 
-			go saveAndSendMessage(data, c, a, l)
+			go saveAndSendMessage(data, c, a, log)
 		}
+		// --- LISTENING MESSAGES
 	}
 }
 
-func saveAndSendMessage(data []byte, c *syncmap.ConnectionsMap, a App, l *logrus.Logger) {
+func openNewConnection(
+	log logrus.FieldLogger, u *websocket.Upgrader,
+	w http.ResponseWriter, r *http.Request,
+	c *syncmap.ConnectionsMap,
+) (uid uuid.UUID, conn *websocket.Conn, cancelFunc func(), err error) {
+	uid = uuid.New()
+	log.WithField("uuid", uid.ID()).
+		Info("trying to open new websocket connection")
+	conn, err = u.Upgrade(w, r, nil)
+	if err != nil {
+		log.WithError(err).
+			WithField("uuid", uid.ID()).
+			Error("cannot upgrade connection to websocket")
+		return
+	}
+	c.Store(conn)
+	log.WithField("uuid", uid.ID()).
+		Info("store the connection")
+	return uid, conn, func() {
+		c.Delete(conn)
+		log.WithField("uuid", uid.ID()).
+			Info("delete the connection")
+		err := conn.Close()
+		if err != nil {
+			log.WithError(err).
+				WithField("uuid", uid.ID()).
+				Error("cannot close connection")
+		}
+	}, nil
+}
+
+func loadLastMessages(a App, log logrus.FieldLogger, uid uuid.UUID, conn *websocket.Conn) error {
+	messages, err := a.LoadLastMessages()
+	if err != nil {
+		defer func() {
+			err = conn.WriteMessage(
+				websocket.CloseInternalServerErr,
+				[]byte(fmt.Sprintf("cannot load last messages: %s", err.Error())),
+			)
+			if err != nil {
+				log.WithError(err).
+					WithField("uuid", uid.ID()).
+					Error("cannot send message to client")
+			}
+		}()
+
+		log.WithError(err).
+			WithField("uuid", uid.ID()).
+			Error("cannot load last messages")
+		return err
+	}
+
+	log.WithField("uuid", uid.ID()).
+		Info("start sending last messages")
+	err = saveLastMessages(messages, log, uid, conn)
+	log.WithField("uuid", uid.ID()).
+		Info("last messages have been sent")
+	return err
+}
+
+func saveLastMessages(messages []domain.Message, log logrus.FieldLogger, uid uuid.UUID, conn *websocket.Conn) error {
+	for _, m := range messages {
+		data, err := json.Marshal(m)
+		if err != nil {
+			log.WithError(err).
+				WithField("uuid", uid.ID()).
+				Info("cannot marshal data to json")
+			continue
+		}
+		err = conn.WriteMessage(websocket.TextMessage, data)
+		if err != nil {
+			log.WithError(err).
+				WithField("uuid", uid.ID()).
+				Error("cannot send message to client")
+			return err
+		}
+	}
+	return nil
+}
+
+func saveAndSendMessage(data []byte, c *syncmap.ConnectionsMap, a App, l logrus.FieldLogger) {
 	msg := domain.Message{}
 	err := json.Unmarshal(data, &msg)
 	if err != nil {

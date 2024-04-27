@@ -8,14 +8,14 @@ import (
 )
 
 type Repository struct {
-	pool   *pgxpool.Pool
-	logger logrus.FieldLogger
+	pool *pgxpool.Pool
+	log  logrus.FieldLogger
 }
 
 func NewRepository(conf *Config) *Repository {
 	return &Repository{
-		pool:   conf.Pool,
-		logger: conf.Logger,
+		pool: conf.Pool,
+		log:  conf.Logger,
 	}
 }
 
@@ -24,6 +24,10 @@ const saveMessageQuery = `INSERT INTO messages (username, data) VALUES ($1, $2);
 func (r *Repository) SaveMessage(ctx context.Context, message domain.Message) error {
 	_, err := r.pool.Exec(ctx, saveMessageQuery, message.Username, message.Text)
 	if err != nil {
+		r.log.
+			WithError(err).
+			WithField("message", message).
+			Errorf("cannot save message")
 		return newPostgresError(err)
 	}
 	return nil
@@ -38,6 +42,9 @@ ORDER BY id;`
 func (r *Repository) LoadMessages(ctx context.Context, count int) ([]domain.Message, error) {
 	rows, err := r.pool.Query(ctx, loadMessagesQuery, count)
 	if err != nil {
+		r.log.
+			WithError(err).
+			Error("cannot load messages")
 		return nil, newPostgresError(err)
 	}
 	defer rows.Close()
@@ -47,6 +54,9 @@ func (r *Repository) LoadMessages(ctx context.Context, count int) ([]domain.Mess
 		msg := domain.Message{}
 		err = rows.Scan(&msg.Username, &msg.Text)
 		if err != nil {
+			r.log.
+				WithError(err).
+				Error("cannot scan row")
 			return nil, newPostgresError(err)
 		}
 		res = append(res, msg)

@@ -24,12 +24,13 @@ func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 
 	producer, err := sarama.NewAsyncProducer(cfg.Brokers, config)
 	if err != nil {
+		cfg.Logger.WithError(err).Error("cannot create new kafka producer")
 		return nil, err
 	}
 
 	go func() {
 		for err = range producer.Errors() {
-			cfg.Logger.WithError(err).Error("Failed to produce message")
+			cfg.Logger.WithError(err).Error("failed to produce message")
 		}
 	}()
 
@@ -42,7 +43,10 @@ func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 
 func (p *Producer) SaveMessage(_ context.Context, message domain.Message) error {
 	b, err := json.Marshal(message)
-	p.log.Debugf("[KAFKA PRODUCER] trying to prouce message: %s", string(b))
+	p.log.
+		WithError(err).
+		WithField("message", message).
+		Error("trying to produce message")
 	if err != nil {
 		return err
 	}
