@@ -6,11 +6,7 @@ services:
     build:
       dockerfile: ./server/Dockerfile
     ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
-    expose:
-      - "${SERVER_PORT}"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "8080:8080"
     depends_on:
       - db
       - redis
@@ -50,8 +46,6 @@ services:
     restart: always
     ports:
       - "6379:6379"
-    expose:
-      - "6379"
     environment:
       - REDIS_PORT=6379
       - REDIS_DATABASES=16

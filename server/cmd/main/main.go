@@ -16,6 +16,8 @@ import (
 	"syscall"
 )
 
+const EnvFile = "example.env"
+
 func main() {
 	logger := &logrus.Logger{
 		Out: os.Stderr,
@@ -28,7 +30,7 @@ func main() {
 		Level: logrus.DebugLevel,
 	}
 
-	cfg, err := config.Get(logger, "example.env")
+	cfg, err := config.Get(logger, EnvFile)
 	if err != nil {
 		logger.WithError(err).Fatal("cannot parse config")
 	}
@@ -79,7 +81,7 @@ func main() {
 		logger.WithError(err).Info("gracefully shutting down the server")
 	}
 
-	logger.Info("start gracefull shutdown")
+	logger.Info("start graceful shutdown")
 	err = server.GracefulShutdown(context.Background())
 	if err != nil {
 		logger.Infof("cannot gracefully shutdown the server: %s", err.Error())
