@@ -57,3 +57,21 @@ jobs:
         run: |
           go mod tidy
           go test -v -race -coverpkg=./... ./...
+
+      - name: Build-Storage
+        working-directory: ./storage
+        run: |
+          go mod tidy
+          go build -v ./...
+
+      - name: Lint-Storage
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          working-directory: ./storage
+
+      - name: Test-Storage
+        working-directory: ./storage
+        run: |
+          go mod tidy
+          go test -v -race -coverpkg=./... ./...
