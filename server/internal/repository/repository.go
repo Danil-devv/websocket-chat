@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	redisgh "github.com/redis/go-redis/v9"
 	"server/internal/adapters/kafka"
 	"server/internal/adapters/postgres"
 	"server/internal/adapters/redis"
@@ -15,7 +14,7 @@ type Repository struct {
 	kafka    *kafka.Producer
 }
 
-func NewRepository(pgConf *postgres.Config, redisConf *redisgh.Options, kafkaConf *kafka.ProducerConfig) (*Repository, error) {
+func NewRepository(pgConf *postgres.Config, redisConf *redis.Config, kafkaConf *kafka.Config) (*Repository, error) {
 	k, err := kafka.NewProducer(kafkaConf)
 	if err != nil {
 		return nil, err

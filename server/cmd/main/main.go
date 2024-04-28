@@ -4,92 +4,50 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	pgxLogrus "github.com/jackc/pgx-logrus"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/tracelog"
-	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"net/http"
 	"os"
 	"os/signal"
-	"server/internal/adapters/kafka"
-	"server/internal/adapters/postgres"
 	"server/internal/adapters/websocket"
 	"server/internal/app"
 	"server/internal/config"
 	"server/internal/repository"
-	"strings"
 	"syscall"
 )
 
-var log *logrus.Logger
-
 func main() {
-	log = &logrus.Logger{
-		Out:       os.Stdout,
-		Formatter: new(logrus.TextFormatter),
-		Level:     logrus.DebugLevel,
+	logger := &logrus.Logger{
+		Out: os.Stderr,
+		Formatter: &logrus.TextFormatter{
+			ForceColors:   true,
+			PadLevelText:  true,
+			FullTimestamp: true,
+		},
+		Hooks: logrus.LevelHooks{},
+		Level: logrus.DebugLevel,
 	}
 
-	if err := godotenv.Load(); err != nil {
-		log.WithError(err).Fatal("cannot load .env file")
-	}
-
-	pgxConfig, err := pgxpool.ParseConfig("postgres://postgres:postgres@db:5432/websocket-chat")
+	cfg, err := config.Get(logger, "example.env")
 	if err != nil {
-		log.WithError(err).Fatal("cannot parse config file")
+		logger.WithError(err).Fatal("cannot parse config")
 	}
 
-	pgxConfig.ConnConfig.Tracer = &tracelog.TraceLog{
-		Logger:   pgxLogrus.NewLogger(log),
-		LogLevel: tracelog.LogLevelDebug,
-	}
-
-	pool, err := pgxpool.NewWithConfig(context.Background(), pgxConfig)
+	repo, err := repository.NewRepository(cfg.Postgres, cfg.Redis, cfg.Kafka)
 	if err != nil {
-		log.WithError(err).Fatal("cannot create pgx pool with config")
+		logger.WithError(err).Fatal("cannot create repository")
 	}
-	defer pool.Close()
+	a := app.New(repo, cfg.App)
+	server := websocket.NewServer(a, cfg.Server, logger)
 
-	pgConfig := &postgres.Config{
-		Pool:   pool,
-		Logger: log,
-	}
-	redisConfig := &redis.Options{
-		Addr: "redis:6379",
-		DB:   0,
-	}
-	kafkaConfig := &kafka.ProducerConfig{
-		Brokers: strings.Split("kafka1:29092,kafka2:29093,kafka3:29094", ","),
-		Topic:   "ts.2s.2",
-		Logger:  log,
-	}
-	repo, err := repository.NewRepository(pgConfig, redisConfig, kafkaConfig)
-	if err != nil {
-		log.WithError(err).Fatal("cannot create repository")
-	}
-
-	appConfig, err := config.LoadApp()
-	if err != nil {
-		log.WithError(err).Fatal("cannot load .env file")
-	}
-	a := app.New(repo, appConfig)
-
-	serverConfig, err := config.LoadServer()
-	if err != nil {
-		log.WithError(err).Fatal("cannot load .env file")
-	}
-	server := websocket.NewServer(a, serverConfig, log)
-
+	// graceful shutdown
 	eg, ctx := errgroup.WithContext(context.Background())
 	sigQuit := make(chan os.Signal, 1)
 	signal.Notify(sigQuit, syscall.SIGINT, syscall.SIGTERM)
 	eg.Go(func() error {
 		select {
 		case s := <-sigQuit:
-			log.Infof("captured signal: %v", s)
+			logger.WithField("signal", s).Info("captured signal")
 			return fmt.Errorf("captured signal: %v", s)
 		case <-ctx.Done():
 			return nil
@@ -97,8 +55,8 @@ func main() {
 	})
 
 	eg.Go(func() error {
-		log.Infof("websocket server: start listening on :%s", serverConfig.Port)
-		defer log.Infof("websocket server: close listening on :%s", serverConfig.Port)
+		logger.WithField("port", cfg.Server.Port).Info("websocket server: start listening")
+		defer logger.WithField("port", cfg.Server.Port).Infof("websocket server: close listening")
 
 		errCh := make(chan error)
 
@@ -118,14 +76,14 @@ func main() {
 	})
 
 	if err = eg.Wait(); err != nil {
-		log.Infof("gracefully shutting down the server: %v", err)
+		logger.WithError(err).Info("gracefully shutting down the server")
 	}
 
-	log.Infof("start gracefull shutdown")
+	logger.Info("start gracefull shutdown")
 	err = server.GracefulShutdown(context.Background())
 	if err != nil {
-		log.Infof("cannot gracefully shutdown the server: %s", err.Error())
+		logger.Infof("cannot gracefully shutdown the server: %s", err.Error())
 	} else {
-		log.Infof("server was successfully shutted down")
+		logger.Infof("server was successfully shutted down")
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"server/internal/adapters/websocket/syncmap"
-	"server/internal/config"
 	"server/internal/domain"
 )
 
@@ -20,10 +19,10 @@ type Server struct {
 	srv http.Server
 }
 
-func NewServer(a App, conf *config.Server, log logrus.FieldLogger) *Server {
+func NewServer(a App, cfg *Config, log logrus.FieldLogger) *Server {
 	upgrader := &websocket.Upgrader{
-		ReadBufferSize:  conf.ReadBufferSize,
-		WriteBufferSize: conf.WriteBufferSize,
+		ReadBufferSize:  cfg.ReadBufferSize,
+		WriteBufferSize: cfg.WriteBufferSize,
 	}
 	connections := syncmap.New()
 
@@ -31,7 +30,7 @@ func NewServer(a App, conf *config.Server, log logrus.FieldLogger) *Server {
 
 	return &Server{
 		srv: http.Server{
-			Addr:    fmt.Sprintf(":%s", conf.Port),
+			Addr:    fmt.Sprintf(":%s", cfg.Port),
 			Handler: router,
 		},
 	}

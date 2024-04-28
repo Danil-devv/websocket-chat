@@ -1,62 +1,61 @@
 package config
 
 import (
-	"errors"
-	"fmt"
-	"os"
-	"strconv"
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
+	"server/internal/adapters/kafka"
+	"server/internal/adapters/postgres"
+	rds "server/internal/adapters/redis"
+	"server/internal/adapters/websocket"
+	"server/internal/app"
 )
 
-type Server struct {
-	Port            string `json:"port"`
-	WriteBufferSize int    `json:"writeBufferSize"`
-	ReadBufferSize  int    `json:"readBufferSize"`
+type Config struct {
+	Postgres *postgres.Config
+	Kafka    *kafka.Config
+	Redis    *rds.Config
+	Server   *websocket.Config
+	App      *app.Config
 }
 
-type App struct {
-	MessagesToLoad int `json:"messagesToLoad"`
-}
-
-func LoadApp() (*App, error) {
-	size, ok := os.LookupEnv("MESSAGES_TO_LOAD")
-	if !ok {
-		return nil, errors.New("cannot find 'MESSAGES_TO_LOAD' variable in environment")
+func Get(logger *logrus.Logger, envFile string) (*Config, error) {
+	if err := godotenv.Load(envFile); err != nil {
+		logger.
+			WithError(err).
+			Error("cannot load .env file:")
 	}
-	messagesToLoad, err := strconv.Atoi(size)
+
+	postgresConfig, err := getPostgresConfig(logger)
 	if err != nil {
-		return nil, fmt.Errorf("%s: variable 'MESSAGES_TO_LOAD' must be integer", err.Error())
-	}
-	return &App{MessagesToLoad: messagesToLoad}, nil
-}
-
-func LoadServer() (*Server, error) {
-	port, ok := os.LookupEnv("SERVER_PORT")
-	if !ok {
-		return nil, errors.New("cannot find 'PORT' variable in environment")
+		return nil, err
 	}
 
-	size, ok := os.LookupEnv("WRITE_BUFFER_SIZE")
-	if !ok {
-		return nil, errors.New("cannot find 'WRITE_BUFFER_SIZE' variable in environment")
-	}
-	writeBufferSize, err := strconv.Atoi(size)
+	kafkaConfig, err := getKafkaConfig(logger)
 	if err != nil {
-		return nil, fmt.Errorf("%s: variable 'WRITE_BUFFER_SIZE' must be integer", err.Error())
+		return nil, err
 	}
 
-	size, ok = os.LookupEnv("READ_BUFFER_SIZE")
-	if !ok {
-		return nil, errors.New("cannot find 'READ_BUFFER_SIZE' variable in environment")
-	}
-
-	readBufferSize, err := strconv.Atoi(size)
+	redisConfig, err := getRedisConfig(logger)
 	if err != nil {
-		return nil, fmt.Errorf("%s: variable 'READ_BUFFER_SIZE' must be integer", err.Error())
+		return nil, err
 	}
 
-	return &Server{
-		Port:            port,
-		WriteBufferSize: writeBufferSize,
-		ReadBufferSize:  readBufferSize,
-	}, nil
+	serverConfig, err := getServerConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	appConfig, err := getAppConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	config := &Config{
+		Postgres: postgresConfig,
+		Kafka:    kafkaConfig,
+		Redis:    redisConfig,
+		Server:   serverConfig,
+		App:      appConfig,
+	}
+	return config, nil
 }

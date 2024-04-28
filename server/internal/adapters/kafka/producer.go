@@ -11,11 +11,11 @@ import (
 
 type Producer struct {
 	conn  sarama.AsyncProducer
-	log   *logrus.Logger
+	log   logrus.FieldLogger
 	topic string
 }
 
-func NewProducer(cfg *ProducerConfig) (*Producer, error) {
+func NewProducer(cfg *Config) (*Producer, error) {
 	config := sarama.NewConfig()
 	config.Version = sarama.DefaultVersion
 	config.Producer.RequiredAcks = sarama.WaitForLocal
@@ -42,12 +42,12 @@ func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 }
 
 func (p *Producer) SaveMessage(_ context.Context, message domain.Message) error {
-	b, err := json.Marshal(message)
 	p.log.
-		WithError(err).
 		WithField("message", message).
-		Error("trying to produce message")
+		Info("trying to produce message")
+	b, err := json.Marshal(message)
 	if err != nil {
+		p.log.WithError(err).Error("cannot marshal message")
 		return err
 	}
 	p.conn.Input() <- &sarama.ProducerMessage{
@@ -55,6 +55,9 @@ func (p *Producer) SaveMessage(_ context.Context, message domain.Message) error 
 		Key:   nil,
 		Value: sarama.ByteEncoder(b),
 	}
+	p.log.
+		WithField("message", message).
+		Info("message was produced")
 	return nil
 }
 

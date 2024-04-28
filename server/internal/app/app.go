@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"server/internal/config"
 	"server/internal/domain"
 )
 
@@ -17,7 +16,7 @@ type App struct {
 	repo           LoadSaver
 }
 
-func New(r LoadSaver, conf *config.App) *App {
+func New(r LoadSaver, conf *Config) *App {
 	return &App{
 		repo:           r,
 		messagesToLoad: conf.MessagesToLoad,

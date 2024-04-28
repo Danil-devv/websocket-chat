@@ -6,7 +6,7 @@ COPY ./server/go.mod ./
 
 COPY ./server/go.sum ./
 
-COPY ./server/.env ./
+COPY ./server/example.env ./
 
 RUN mkdir "cmd"
 
@@ -25,6 +25,6 @@ FROM alpine:3.19.0 AS runner
 WORKDIR /root/
 
 COPY --from=builder /app/chat_service .
-COPY --from=builder /app/.env .
+COPY --from=builder /app/example.env .
 
 CMD ["./chat_service"]

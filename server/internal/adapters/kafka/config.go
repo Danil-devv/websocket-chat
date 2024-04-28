@@ -2,8 +2,8 @@ package kafka
 
 import "github.com/sirupsen/logrus"
 
-type ProducerConfig struct {
+type Config struct {
 	Brokers []string
 	Topic   string
-	Logger  *logrus.Logger
+	Logger  logrus.FieldLogger
 }
