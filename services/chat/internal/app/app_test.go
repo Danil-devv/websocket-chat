@@ -12,28 +12,28 @@ import (
 func TestApp_New(t *testing.T) {
 	type testcase struct {
 		conf *Config
-		repo *mocks.Repository
+		repo *mocks.LoadSaver
 	}
 	tests := []testcase{
 		{
 			conf: &Config{MessagesToLoad: 10},
-			repo: mocks.NewRepository(t),
+			repo: mocks.NewLoadSaver(t),
 		},
 		{
 			conf: &Config{MessagesToLoad: 1},
-			repo: mocks.NewRepository(t),
+			repo: mocks.NewLoadSaver(t),
 		},
 		{
 			conf: &Config{MessagesToLoad: 5},
-			repo: mocks.NewRepository(t),
+			repo: mocks.NewLoadSaver(t),
 		},
 		{
 			conf: &Config{MessagesToLoad: 6},
-			repo: mocks.NewRepository(t),
+			repo: mocks.NewLoadSaver(t),
 		},
 		{
 			conf: &Config{MessagesToLoad: 100},
-			repo: mocks.NewRepository(t),
+			repo: mocks.NewLoadSaver(t),
 		},
 	}
 
@@ -74,7 +74,7 @@ func TestApp_SaveMessage_NoRepoError(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		repo := mocks.NewRepository(t)
+		repo := mocks.NewLoadSaver(t)
 		for _, tc := range test {
 			repo.On(
 				"SaveMessage",
@@ -122,7 +122,7 @@ func TestApp_SaveMessage_WithRepoError(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		repo := mocks.NewRepository(t)
+		repo := mocks.NewLoadSaver(t)
 		for _, tc := range test {
 			repo.On(
 				"SaveMessage",
@@ -177,7 +177,7 @@ func TestApp_LoadLastMessages(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		repo := mocks.NewRepository(t)
+		repo := mocks.NewLoadSaver(t)
 		repo.On(
 			"LoadMessages",
 			context.Background(),

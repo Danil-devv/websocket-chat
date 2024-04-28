@@ -5,7 +5,7 @@ import (
 	"context"
 )
 
-//go:generate go run github.com/vektra/mockery/v2@v2.42.0 --name=Repository
+//go:generate go run github.com/vektra/mockery/v2@v2.42.0 --name=LoadSaver
 type LoadSaver interface {
 	SaveMessage(ctx context.Context, message domain.Message) error
 	LoadMessages(ctx context.Context, count int) ([]domain.Message, error)
