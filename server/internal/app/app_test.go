@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"server/internal/app/mocks"
-	"server/internal/config"
 	"server/internal/domain"
 	"server/internal/repository/errs"
 	"testing"
@@ -12,28 +11,28 @@ import (
 
 func TestApp_New(t *testing.T) {
 	type testcase struct {
-		conf *config.App
+		conf *Config
 		repo *mocks.Repository
 	}
 	tests := []testcase{
 		{
-			conf: &config.App{MessagesToLoad: 10},
+			conf: &Config{MessagesToLoad: 10},
 			repo: mocks.NewRepository(t),
 		},
 		{
-			conf: &config.App{MessagesToLoad: 1},
+			conf: &Config{MessagesToLoad: 1},
 			repo: mocks.NewRepository(t),
 		},
 		{
-			conf: &config.App{MessagesToLoad: 5},
+			conf: &Config{MessagesToLoad: 5},
 			repo: mocks.NewRepository(t),
 		},
 		{
-			conf: &config.App{MessagesToLoad: 6},
+			conf: &Config{MessagesToLoad: 6},
 			repo: mocks.NewRepository(t),
 		},
 		{
-			conf: &config.App{MessagesToLoad: 100},
+			conf: &Config{MessagesToLoad: 100},
 			repo: mocks.NewRepository(t),
 		},
 	}
@@ -85,12 +84,11 @@ func TestApp_SaveMessage_NoRepoError(t *testing.T) {
 				Return(tc.returnedError)
 		}
 
-		app := New(repo, &config.App{MessagesToLoad: 10})
+		app := New(repo, &Config{MessagesToLoad: 10})
 		for _, tc := range test {
 			err := app.SaveMessage(tc.message, tc.username)
 			assert.Equal(t, tc.returnedError, err)
 		}
-
 	}
 }
 
@@ -134,7 +132,7 @@ func TestApp_SaveMessage_WithRepoError(t *testing.T) {
 				Return(tc.returnedError)
 		}
 
-		app := New(repo, &config.App{MessagesToLoad: 10})
+		app := New(repo, &Config{MessagesToLoad: 10})
 		for _, tc := range test {
 			err := app.SaveMessage(tc.message, tc.username)
 			assert.Error(t, err)
@@ -186,7 +184,7 @@ func TestApp_LoadLastMessages(t *testing.T) {
 			test.count,
 		).Return(test.messages, test.err)
 
-		app := New(repo, &config.App{MessagesToLoad: test.count})
+		app := New(repo, &Config{MessagesToLoad: test.count})
 		messages, err := app.LoadLastMessages()
 		assert.Equal(t, test.messages, messages)
 		if test.err != nil {
