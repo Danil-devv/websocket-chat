@@ -21,19 +21,19 @@ jobs:
         with:
           go-version: 'stable'
 
-      - name: Build-Server
+      - name: Build-Chat-Service
         working-directory: ./services/chat
         run: |
           go mod tidy
           go build -v ./...
 
-      - name: Lint-Server
+      - name: Lint-Chat-Service
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           working-directory: ./services/chat
 
-      - name: Test-Server
+      - name: Test-Chat-Service
         working-directory: ./services/chat
         run: |
           go mod tidy
@@ -58,19 +58,19 @@ jobs:
           go mod tidy
           go test -v -race -coverpkg=./... ./...
 
-      - name: Build-Storage
+      - name: Build-Storage-Service
         working-directory: ./services/storage
         run: |
           go mod tidy
           go build -v ./...
 
-      - name: Lint-Storage
+      - name: Lint-Storage-Service
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           working-directory: ./services/storage
 
-      - name: Test-Storage
+      - name: Test-Storage-Service
         working-directory: ./services/storage
         run: |
           go mod tidy
