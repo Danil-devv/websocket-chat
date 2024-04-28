@@ -28,14 +28,14 @@ func main() {
 		Level: logrus.DebugLevel,
 	}
 
-	postgresConfig, kafkaConfig, redisConfig, err := config.Get(logger, EnvFile)
+	cfg, err := config.Get(logger, EnvFile)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	repo := repository.New(postgresConfig, redisConfig, logger.WithField("FROM", "[REPOSITORY]"))
+	repo := repository.New(cfg.Postgres, cfg.Redis, logger.WithField("FROM", "[REPOSITORY]"))
 	a := app.NewApp(repo)
-	consumer, err := kafka.NewConsumer(a, kafkaConfig)
+	consumer, err := kafka.NewConsumer(a, cfg.Kafka)
 	if err != nil {
 		logger.
 			WithError(err).

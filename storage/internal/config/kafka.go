@@ -2,7 +2,10 @@ package config
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
+	"storage/internal/adapters/kafka"
+	"strings"
 )
 
 type Kafka struct {
@@ -11,7 +14,21 @@ type Kafka struct {
 	GroupID string
 }
 
-func getKafkaConfig() (Kafka, error) {
+func getKafkaConfig(logger logrus.FieldLogger) (*kafka.Config, error) {
+	k, err := loadEnvKafkaConfig()
+	if err != nil {
+		return nil, err
+	}
+	kafkaConfig := &kafka.Config{
+		Brokers: strings.Split(k.Brokers, ","),
+		Topics:  strings.Split(k.Topics, ","),
+		GroupID: k.GroupID,
+		Logger:  logger.WithField("FROM", "[KAFKA-CONSUMER]"),
+	}
+	return kafkaConfig, nil
+}
+
+func loadEnvKafkaConfig() (Kafka, error) {
 	brokers, ok := os.LookupEnv("KAFKA_BROKERS")
 	if !ok {
 		return Kafka{}, fmt.Errorf("KAFKA_BROKERS environment variable not set")
