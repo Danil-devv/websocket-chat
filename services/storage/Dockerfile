@@ -2,19 +2,19 @@ FROM golang:1.22.0-alpine3.19 AS builder
 
 WORKDIR /app
 
-COPY ./storage/go.mod ./
+COPY ./services/storage/go.mod ./
 
-COPY ./storage/go.sum ./
+COPY ./services/storage/go.sum ./
 
-COPY ./storage/example.env ./
+COPY ./services/storage/example.env ./
 
 RUN mkdir "cmd"
 
 RUN mkdir "internal"
 
-COPY ./storage/cmd ./cmd
+COPY ./services/storage/cmd ./cmd
 
-COPY ./storage/internal ./internal
+COPY ./services/storage/internal ./internal
 
 RUN go mod download
 
