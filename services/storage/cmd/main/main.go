@@ -59,6 +59,7 @@ func main() {
 	})
 
 	eg.Go(func() error {
+		logger.Info("starting consumer")
 		return consumer.Run()
 	})
 

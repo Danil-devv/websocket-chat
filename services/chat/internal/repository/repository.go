@@ -6,6 +6,7 @@ import (
 	"chat/internal/adapters/redis"
 	"chat/internal/domain"
 	"context"
+	"time"
 )
 
 type Repository struct {
@@ -15,10 +16,26 @@ type Repository struct {
 }
 
 func NewRepository(pgConf *postgres.Config, redisConf *redis.Config, kafkaConf *kafka.Config) (*Repository, error) {
-	k, err := kafka.NewProducer(kafkaConf)
+	var (
+		k   *kafka.Producer
+		err error
+	)
+
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+	retries := 15
+	for retries > 0 {
+		<-ticker.C
+		k, err = kafka.NewProducer(kafkaConf)
+		if err == nil {
+			break
+		}
+		retries--
+	}
 	if err != nil {
 		return nil, err
 	}
+
 	return &Repository{
 		postgres: postgres.NewRepository(pgConf),
 		redis:    redis.NewRepository(redisConf),

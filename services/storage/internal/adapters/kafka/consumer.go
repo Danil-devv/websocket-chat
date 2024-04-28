@@ -5,6 +5,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/sirupsen/logrus"
 	"storage/internal/app"
+	"time"
 )
 
 type Consumer struct {
@@ -24,7 +25,23 @@ func NewConsumer(app *app.App, cfg *Config) (*Consumer, error) {
 		log: cfg.Logger.WithField("FROM", "[KAFKA-HANDLER]"),
 	}
 
-	consumerGroup, err := sarama.NewConsumerGroup(cfg.Brokers, cfg.GroupID, InitConsumerConfig())
+	var (
+		consumerGroup sarama.ConsumerGroup
+		err           error
+	)
+
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+	retries := 15
+	for retries > 0 {
+		<-ticker.C
+		consumerGroup, err = sarama.NewConsumerGroup(cfg.Brokers, cfg.GroupID, InitConsumerConfig())
+		if err == nil {
+			break
+		}
+		retries--
+	}
+
 	if err != nil {
 		cfg.Logger.
 			WithError(err).
